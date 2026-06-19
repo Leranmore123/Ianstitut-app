@@ -1026,13 +1026,31 @@ class UploadPDFView(APIView):
         upload_dir = os.path.join(settings.MEDIA_ROOT, 'notes', str(course_id))
         os.makedirs(upload_dir, exist_ok=True)
 
-        file_path = os.path.join(upload_dir, file.name)
+        # Sanitize filename
+        safe_name = file.name.replace(' ', '_')
+        file_path = os.path.join(upload_dir, safe_name)
         with open(file_path, 'wb+') as dest:
             for chunk in file.chunks():
                 dest.write(chunk)
 
-        file_url = f"{request.scheme}://{request.get_host()}{settings.MEDIA_URL}notes/{course_id}/{file.name}"
-        return Response({'url': file_url, 'fileName': file.name}, status=status.HTTP_201_CREATED)
+        file_url = f"{request.scheme}://{request.get_host()}{settings.MEDIA_URL}notes/{course_id}/{safe_name}"
+
+        # Create Note object in DB so it appears in student view
+        title = request.data.get('title', safe_name)
+        note = Note.objects.create(
+            title=title,
+            subject=request.data.get('subject', ''),
+            chapter=request.data.get('chapter', ''),
+            pdf_url=file_url,
+            is_free=request.data.get('isFree', 'false').lower() == 'true',
+            course_id=course_id,
+        )
+        from .serializers import NoteSerializer
+        return Response({
+            'url': file_url,
+            'fileName': safe_name,
+            'note': NoteSerializer(note).data,
+        }, status=status.HTTP_201_CREATED)
 
 
 # ── Course Enrollment Check ───────────────────────────────────────────────────
