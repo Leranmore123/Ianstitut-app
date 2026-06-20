@@ -64,6 +64,6 @@ MIDDLEWARE = [
 # ── CORS ──────────────────────────────────────────────────────────────────────
 CORS_ALLOW_ALL_ORIGINS = True  # Restrict in prod: CORS_ALLOWED_ORIGINS = ['https://yourapp.com']
 
-# ── Razorpay ──────────────────────────────────────────────────────────────────
-RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID', default='rzp_test_e664V0FP0zQy7N')
-RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='QdnuRxUHrPGeiJc9lDTXYPO7')
+# Razorpay config disabled
+# RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID', default='rzp_test_e664V0FP0zQy7N')
+# RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='QdnuRxUHrPGeiJc9lDTXYPO7')

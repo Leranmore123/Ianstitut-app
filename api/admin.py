@@ -5,7 +5,7 @@ from .models import (
     Lecture, Note, Assignment, AssignmentSubmission, Attendance,
     Progress, Notification, Doubt, DoubtReply, Payment, FeeReceipt,
     ExamResult, CodingQuestion, Schedule, ChatMessage, Poll, PollOption,
-    Quiz, QuizQuestion, QuizAttempt,
+    Quiz, QuizQuestion, QuizAttempt, Banner,
 )
 
 
@@ -35,8 +35,29 @@ class CategoryAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
 
+from django import forms
+from django.core.files.storage import default_storage
+
+class CourseAdminForm(forms.ModelForm):
+    thumbnail_upload = forms.ImageField(required=False, label="Upload Thumbnail File (Optional - Overwrites URL)")
+
+    class Meta:
+        model = Course
+        fields = '__all__'
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        uploaded_file = self.cleaned_data.get('thumbnail_upload')
+        if uploaded_file:
+            file_name = default_storage.save(f'thumbnails/{uploaded_file.name}', uploaded_file)
+            instance.thumbnail = f"/uploads/{file_name}"
+        if commit:
+            instance.save()
+        return instance
+
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
+    form = CourseAdminForm
     list_display = ('title', 'category', 'price', 'is_free', 'is_active', 'total_students')
     list_filter = ('is_active', 'is_free', 'category')
     search_fields = ('title',)
@@ -47,8 +68,26 @@ class CourseEnrollmentAdmin(admin.ModelAdmin):
     list_display = ('user', 'course', 'enrolled_at')
 
 
+class BatchAdminForm(forms.ModelForm):
+    thumbnail_upload = forms.ImageField(required=False, label="Upload Thumbnail File (Optional - Overwrites URL)")
+
+    class Meta:
+        model = Batch
+        fields = '__all__'
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        uploaded_file = self.cleaned_data.get('thumbnail_upload')
+        if uploaded_file:
+            file_name = default_storage.save(f'thumbnails/{uploaded_file.name}', uploaded_file)
+            instance.thumbnail = f"/uploads/{file_name}"
+        if commit:
+            instance.save()
+        return instance
+
 @admin.register(Batch)
 class BatchAdmin(admin.ModelAdmin):
+    form = BatchAdminForm
     list_display = ('name', 'category', 'price', 'is_free', 'is_active', 'total_students')
     list_filter = ('is_active', 'is_free', 'category')
     search_fields = ('name',)
@@ -173,3 +212,10 @@ class QuizAdmin(admin.ModelAdmin):
 class QuizAttemptAdmin(admin.ModelAdmin):
     list_display = ('student', 'quiz', 'score', 'percentage', 'passed', 'submitted_at')
     list_filter = ('passed',)
+
+
+@admin.register(Banner)
+class BannerAdmin(admin.ModelAdmin):
+    list_display = ('title', 'is_active', 'order', 'action_type', 'created_at')
+    list_filter = ('is_active', 'action_type')
+    search_fields = ('title', 'subtitle')

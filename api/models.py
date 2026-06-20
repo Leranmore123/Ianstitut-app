@@ -287,7 +287,7 @@ class FeeReceipt(models.Model):
     course = models.ForeignKey(Course, on_delete=models.SET_NULL, null=True, blank=True)
     batch = models.ForeignKey(Batch, on_delete=models.SET_NULL, null=True, blank=True)
     payment_id = models.CharField(max_length=200, blank=True)
-    payment_method = models.CharField(max_length=50, default='Razorpay')
+    payment_method = models.CharField(max_length=50, default='Direct')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='paid')
     institute_name = models.CharField(max_length=200, default='Learn More Technologies')
     paid_date = models.DateTimeField(auto_now_add=True)
@@ -434,3 +434,27 @@ class QuizAttempt(models.Model):
     passed = models.BooleanField(default=False)
     time_taken = models.IntegerField(null=True, blank=True)
     submitted_at = models.DateTimeField(auto_now_add=True)
+
+
+# ── Banner ────────────────────────────────────────────────────────────────────
+class Banner(models.Model):
+    ACTION_CHOICES = [
+        ('none', 'No Action'),
+        ('course', 'Navigate to Course'),
+        ('batch', 'Navigate to Batch'),
+    ]
+    title = models.CharField(max_length=200)
+    subtitle = models.CharField(max_length=300, blank=True)
+    image = models.ImageField(upload_to='banners/', blank=True, null=True)
+    image_url = models.URLField(blank=True, help_text="Or paste image URL instead of upload")
+    action_type = models.CharField(max_length=50, default='none', choices=ACTION_CHOICES)
+    action_id = models.IntegerField(blank=True, null=True, help_text="ID of course or batch to open")
+    is_active = models.BooleanField(default=True)
+    order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', '-created_at']
+
+    def __str__(self):
+        return self.title

@@ -110,4 +110,7 @@ urlpatterns = [
     # ── Polls ─────────────────────────────────────────────────────────────────
     path('poll/', views.PollListView.as_view(), name='poll-list'),
     path('poll/<int:pk>/vote/', views.PollVoteView.as_view(), name='poll-vote'),
+
+    # ── Banners ───────────────────────────────────────────────────────────────
+    path('banners/', views.BannerListView.as_view(), name='banner-list'),
 ]

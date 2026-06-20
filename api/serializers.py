@@ -6,7 +6,7 @@ from .models import (
     Lecture, Note, Assignment, AssignmentSubmission, Attendance,
     Progress, Notification, Doubt, DoubtReply, Payment, FeeReceipt,
     ExamResult, CodingQuestion, Schedule, ChatMessage, Poll, PollOption,
-    Quiz, QuizQuestion, QuizAttempt, Section, Review,
+    Quiz, QuizQuestion, QuizAttempt, Section, Review, Banner,
 )
 
 
@@ -120,6 +120,17 @@ class CourseSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        thumbnail = data.get('thumbnail')
+        if thumbnail and not (thumbnail.startswith('http://') or thumbnail.startswith('https://')):
+            request = self.context.get('request')
+            if request:
+                data['thumbnail'] = request.build_absolute_uri(thumbnail)
+            else:
+                data['thumbnail'] = f"http://192.168.1.13:8000{thumbnail}"
+        return data
+
 
 # ── Batch ─────────────────────────────────────────────────────────────────────
 class BatchSerializer(serializers.ModelSerializer):
@@ -157,6 +168,17 @@ class BatchSerializer(serializers.ModelSerializer):
             setattr(instance, attr, val)
         instance.save()
         return instance
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        thumbnail = data.get('thumbnail')
+        if thumbnail and not (thumbnail.startswith('http://') or thumbnail.startswith('https://')):
+            request = self.context.get('request')
+            if request:
+                data['thumbnail'] = request.build_absolute_uri(thumbnail)
+            else:
+                data['thumbnail'] = f"http://192.168.1.13:8000{thumbnail}"
+        return data
 
 
 # ── Lecture ───────────────────────────────────────────────────────────────────
@@ -514,3 +536,29 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     def get__id(self, obj):
         return str(obj.id)
+
+
+# ── Banner ────────────────────────────────────────────────────────────────────
+class BannerSerializer(serializers.ModelSerializer):
+    _id = serializers.SerializerMethodField()
+    imageUrl = serializers.SerializerMethodField()
+    actionType = serializers.CharField(source='action_type')
+    actionId = serializers.IntegerField(source='action_id', required=False, allow_null=True)
+    isActive = serializers.BooleanField(source='is_active', required=False)
+
+    class Meta:
+        model = Banner
+        fields = ['_id', 'title', 'subtitle', 'imageUrl', 'actionType', 'actionId', 'isActive', 'created_at']
+
+    def get__id(self, obj):
+        return str(obj.id)
+
+    def get_imageUrl(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return f"http://192.168.1.13:8000{obj.image.url}"
+        elif obj.image_url:
+            return obj.image_url
+        return None

@@ -1,4 +1,4 @@
-﻿import os
+import os
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
@@ -11,7 +11,7 @@ from .models import (
     User, Category, Course, CourseEnrollment, Batch, BatchEnrollment,
     Lecture, Note, Assignment, AssignmentSubmission, Attendance,
     Notification, Doubt, DoubtReply, Payment, FeeReceipt,
-    ExamResult, Schedule, ChatMessage, Quiz, QuizAttempt, Section, Review,
+    ExamResult, Schedule, ChatMessage, Quiz, QuizAttempt, Section, Review, Banner,
 )
 from .serializers import (
     RegisterSerializer, LoginSerializer, UserSerializer, UserProfileSerializer,
@@ -20,7 +20,7 @@ from .serializers import (
     NotificationSerializer, DoubtSerializer, PaymentSerializer,
     SectionSerializer, ReviewSerializer,
     FeeReceiptSerializer, ExamResultSerializer, ScheduleSerializer,
-    ChatMessageSerializer, QuizSerializer,
+    ChatMessageSerializer, QuizSerializer, BannerSerializer,
 )
 from .permissions import IsAdmin
 
@@ -263,10 +263,10 @@ class CourseListView(APIView):
         category = request.query_params.get('category')
         if category and category != 'All':
             qs = qs.filter(category=category)
-        return Response(CourseSerializer(qs, many=True).data)
+        return Response(CourseSerializer(qs, many=True, context={'request': request}).data)
 
     def post(self, request):
-        serializer = CourseSerializer(data=request.data)
+        serializer = CourseSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -278,7 +278,7 @@ class CourseFeaturedView(APIView):
 
     def get(self, request):
         qs = Course.objects.filter(is_active=True).order_by('-total_students')[:6]
-        return Response(CourseSerializer(qs, many=True).data)
+        return Response(CourseSerializer(qs, many=True, context={'request': request}).data)
 
 
 class CourseDetailView(APIView):
@@ -297,13 +297,13 @@ class CourseDetailView(APIView):
         obj = self._get_obj(pk)
         if not obj:
             return Response({'message': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
-        return Response(CourseSerializer(obj).data)
+        return Response(CourseSerializer(obj, context={'request': request}).data)
 
     def put(self, request, pk):
         obj = self._get_obj(pk)
         if not obj:
             return Response({'message': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
-        serializer = CourseSerializer(obj, data=request.data, partial=True)
+        serializer = CourseSerializer(obj, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -344,10 +344,10 @@ class BatchListView(APIView):
 
     def get(self, request):
         qs = Batch.objects.filter(is_active=True)
-        return Response(BatchSerializer(qs, many=True).data)
+        return Response(BatchSerializer(qs, many=True, context={'request': request}).data)
 
     def post(self, request):
-        serializer = BatchSerializer(data=request.data)
+        serializer = BatchSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -370,13 +370,13 @@ class BatchDetailView(APIView):
         obj = self._get_obj(pk)
         if not obj:
             return Response({'message': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
-        return Response(BatchSerializer(obj).data)
+        return Response(BatchSerializer(obj, context={'request': request}).data)
 
     def put(self, request, pk):
         obj = self._get_obj(pk)
         if not obj:
             return Response({'message': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
-        serializer = BatchSerializer(obj, data=request.data, partial=True)
+        serializer = BatchSerializer(obj, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -416,7 +416,7 @@ class MyBatchesView(APIView):
             user=request.user
         ).values_list('batch_id', flat=True)
         batches = Batch.objects.filter(id__in=enrolled_batch_ids, is_active=True)
-        return Response(BatchSerializer(batches, many=True).data)
+        return Response(BatchSerializer(batches, many=True, context={'request': request}).data)
 
 
 # ── Lectures ──────────────────────────────────────────────────────────────────
@@ -1408,3 +1408,25 @@ class PollVoteView(APIView):
         option.save()
         poll.voters.add(request.user)
         return Response({'message': 'Vote recorded', 'votes': option.votes})
+
+
+# ── Banner ────────────────────────────────────────────────────────────────────
+class BannerListView(APIView):
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAdmin()]
+
+    def get(self, request):
+        if request.user and request.user.is_authenticated and hasattr(request.user, 'role') and request.user.role == 'admin':
+            qs = Banner.objects.all()
+        else:
+            qs = Banner.objects.filter(is_active=True)
+        return Response(BannerSerializer(qs, many=True, context={'request': request}).data)
+
+    def post(self, request):
+        serializer = BannerSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
